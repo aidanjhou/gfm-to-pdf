@@ -52,86 +52,20 @@ export default function Home() {
     setIsExporting(true)
     try {
       const container = document.getElementById("preview-container")
-      if (!container) return
-
-      // Clone the container to avoid modifying the original
-      const clone = container.cloneNode(true) as HTMLElement
-      clone.style.width = "210mm"
-      
-      // Remove scripts and styles that might cause issues
-      const scripts = clone.querySelectorAll('script, style')
-      scripts.forEach(el => el.remove())
-
-      // Add print-specific styles with Chinese font
-      clone.style.backgroundColor = "#ffffff"
-      clone.style.color = "#000000"
-      clone.style.padding = "20px"
-      clone.style.fontFamily = "'Noto Sans SC', sans-serif"
-      
-      // Apply font family to all text elements
-      const allElements = clone.querySelectorAll('*')
-      allElements.forEach((el) => {
-        const element = el as HTMLElement
-        if (element.style.fontFamily === '' || !element.style.fontFamily) {
-          element.style.fontFamily = "'Noto Sans SC', sans-serif"
-        }
-      })
-      
-      document.body.appendChild(clone)
-
-      // Dynamic import to avoid SSR issues
-      const html2canvas = (await import("html2canvas")).default
-      const { jsPDF } = await import("jspdf")
-      const fontkit = (await import("@pdf-lib/fontkit")).default
-      const pdf = new jsPDF("p", "mm", "a4") as any
-      pdf.registerFontkit(fontkit)
-
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        windowWidth: clone.scrollWidth
-      })
-
-      document.body.removeChild(clone)
-
-      // Load Chinese font from local file
-      const fontResponse = await fetch("/fonts/NotoSansSC-Regular.otf")
-      const fontBuffer = await fontResponse.arrayBuffer()
-
-      // Register and embed font using fontkit
-      pdf.registerFontkit(fontkit)
-      pdf.addFileToVFS("NotoSansSC-Regular.otf", fontBuffer)
-      pdf.addFont("NotoSansSC-Regular.otf", "NotoSansSC", "normal")
-      pdf.setFont("NotoSansSC")
-
-      const imgData = canvas.toDataURL("image/png")
-
-      const pageWidth = 210
-      const pageHeight = 297
-      const margin = 10
-      const contentWidth = pageWidth - margin * 2
-      const contentHeight = (canvas.height * contentWidth) / canvas.width
-      
-      let heightLeft = contentHeight
-      let position = margin
-
-      pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
-      heightLeft -= (pageHeight - margin)
-
-      while (heightLeft >= 0) {
-        position = heightLeft - contentHeight + margin
-        pdf.addPage()
-        pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
-        heightLeft -= (pageHeight - margin)
+      if (!container) {
+        console.error("Preview container not found")
+        return
       }
 
-      pdf.save("document.pdf")
+      // Encode content for URL
+      const content = encodeURIComponent(container.innerHTML)
+      
+      // Navigate to print page with content as query param
+      window.location.href = `/print?content=${content}`
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
-      setIsExporting(false)
+      // Don't reset isExporting - we're navigating away
     }
   }, [])
 
