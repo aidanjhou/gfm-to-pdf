@@ -50,62 +50,47 @@ export default function Home() {
 
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true)
+    console.log("Starting PDF export...")
     try {
       const container = document.getElementById("preview-container")
-      if (!container) return
+      if (!container) {
+        console.error("Preview container not found")
+        return
+      }
+      console.log("Found container")
 
-      // Clone the container to avoid modifying the original
+      // Clone the container
       const clone = container.cloneNode(true) as HTMLElement
-      clone.style.width = "210mm"
-      
-      // Remove scripts and styles that might cause issues
-      const scripts = clone.querySelectorAll('script, style')
-      scripts.forEach(el => el.remove())
-
-      // Add print-specific styles with Chinese font
+      clone.style.position = "absolute"
+      clone.style.left = "-9999px"
+      clone.style.width = "794px" // A4 width in pixels at 96dpi
       clone.style.backgroundColor = "#ffffff"
       clone.style.color = "#000000"
       clone.style.padding = "20px"
       clone.style.fontFamily = "'Noto Sans SC', sans-serif"
       
-      // Apply font family to all text elements
-      const allElements = clone.querySelectorAll('*')
-      allElements.forEach((el) => {
-        const element = el as HTMLElement
-        if (element.style.fontFamily === '' || !element.style.fontFamily) {
-          element.style.fontFamily = "'Noto Sans SC', sans-serif"
-        }
-      })
-      
       document.body.appendChild(clone)
+      console.log("Clone added to body")
 
-      // Dynamic import to avoid SSR issues
+      // Dynamic import
       const html2canvas = (await import("html2canvas")).default
+      console.log("html2canvas loaded")
+      
       const { jsPDF } = await import("jspdf")
-      const fontkit = (await import("@pdf-lib/fontkit")).default
-      const pdf = new jsPDF("p", "mm", "a4") as any
-      pdf.registerFontkit(fontkit)
+      console.log("jspdf loaded")
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        windowWidth: clone.scrollWidth
+        backgroundColor: "#ffffff"
       })
+      console.log("Canvas created:", canvas.width, "x", canvas.height)
 
       document.body.removeChild(clone)
+      console.log("Clone removed")
 
-      // Load Chinese font from local file
-      const fontResponse = await fetch("/fonts/NotoSansSC-Regular.otf")
-      const fontBuffer = await fontResponse.arrayBuffer()
-
-      // Register and embed font using fontkit
-      pdf.registerFontkit(fontkit)
-      pdf.addFileToVFS("NotoSansSC-Regular.otf", fontBuffer)
-      pdf.addFont("NotoSansSC-Regular.otf", "NotoSansSC", "normal")
-      pdf.setFont("NotoSansSC")
-
+      // Simple PDF without font embedding first
+      const pdf = new jsPDF("p", "mm", "a4")
       const imgData = canvas.toDataURL("image/png")
 
       const pageWidth = 210
@@ -114,20 +99,12 @@ export default function Home() {
       const contentWidth = pageWidth - margin * 2
       const contentHeight = (canvas.height * contentWidth) / canvas.width
       
-      let heightLeft = contentHeight
-      let position = margin
+      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, contentHeight)
+      console.log("Image added to PDF")
 
-      pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
-      heightLeft -= (pageHeight - margin)
-
-      while (heightLeft >= 0) {
-        position = heightLeft - contentHeight + margin
-        pdf.addPage()
-        pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
-        heightLeft -= (pageHeight - margin)
-      }
-
-      pdf.save("document.pdf")
+      // Use browser print dialog - more reliable
+      window.print()
+      console.log("Print dialog opened")
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
