@@ -66,6 +66,15 @@ export default function Home() {
       clone.style.color = "#000000"
       clone.style.padding = "20mm"
       clone.style.fontFamily = "'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif"
+      
+      // Add style to remove blockquote pseudo-elements (Tailwind adds quotes)
+      const style = document.createElement("style")
+      style.textContent = `
+        blockquote::before, blockquote::after { content: none !important; }
+        blockquote { border-left: 4px solid #d0d7de !important; }
+      `
+      clone.appendChild(style)
+      
       document.body.appendChild(clone)
 
       // Import html2pdf.js

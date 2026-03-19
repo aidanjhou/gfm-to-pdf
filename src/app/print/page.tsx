@@ -68,7 +68,11 @@ function PrintPageContent() {
               border-left: 4px solid #d0d7de; 
               margin: 1em 0; 
               padding-left: 1em;
-              color: #656d76;
+              color: inherit;
+            }
+            blockquote::before,
+            blockquote::after {
+              content: none;
             }
             a { color: #0969da; }
             img { max-width: 100%; }
