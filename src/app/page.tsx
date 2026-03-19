@@ -62,16 +62,27 @@ export default function Home() {
       const scripts = clone.querySelectorAll('script, style')
       scripts.forEach(el => el.remove())
 
-      // Add print-specific styles
+      // Add print-specific styles with Chinese font
       clone.style.backgroundColor = "#ffffff"
       clone.style.color = "#000000"
       clone.style.padding = "20px"
+      clone.style.fontFamily = "'Noto Sans SC', sans-serif"
+      
+      // Apply font family to all text elements
+      const allElements = clone.querySelectorAll('*')
+      allElements.forEach((el) => {
+        const element = el as HTMLElement
+        if (element.style.fontFamily === '' || !element.style.fontFamily) {
+          element.style.fontFamily = "'Noto Sans SC', sans-serif"
+        }
+      })
       
       document.body.appendChild(clone)
 
       // Dynamic import to avoid SSR issues
       const html2canvas = (await import("html2canvas")).default
       const { jsPDF } = await import("jspdf")
+      const fontkit = (await import("@pdf-lib/fontkit")).default
 
       const canvas = await html2canvas(clone, {
         scale: 2,
@@ -83,8 +94,20 @@ export default function Home() {
 
       document.body.removeChild(clone)
 
+      // Load Chinese font from Google Fonts
+      const fontUrl = "https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYwNbPzS5HE.119.woff2"
+      const fontResponse = await fetch(fontUrl)
+      const fontBuffer = await fontResponse.arrayBuffer()
+
       const imgData = canvas.toDataURL("image/png")
       const pdf = new jsPDF("p", "mm", "a4")
+      
+      // Register and embed font using fontkit
+      ;(pdf as any).registerFontkit?.(fontkit)
+      ;(pdf as any).addFileToVFS("NotoSansSC-Regular.ttf", fontBuffer)
+      ;(pdf as any).addFont("NotoSansSC-Regular.ttf", "NotoSansSC", "normal")
+      ;(pdf as any).setFont("NotoSansSC")
+
       const pageWidth = 210
       const pageHeight = 297
       const margin = 10
