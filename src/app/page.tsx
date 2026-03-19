@@ -57,15 +57,36 @@ export default function Home() {
         return
       }
 
-      // Encode content for URL
-      const content = encodeURIComponent(container.innerHTML)
+      // Clone and prepare content for PDF
+      const clone = container.cloneNode(true) as HTMLElement
+      clone.style.position = "absolute"
+      clone.style.left = "-9999px"
+      clone.style.width = "210mm"
+      clone.style.backgroundColor = "#ffffff"
+      clone.style.color = "#000000"
+      clone.style.padding = "20mm"
+      clone.style.fontFamily = "'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif"
+      document.body.appendChild(clone)
+
+      // Import html2pdf.js
+      const html2pdf = (await import("html2pdf.js")).default
       
-      // Navigate to print page with content as query param
-      window.location.href = `/print?content=${content}`
+      // Generate and download PDF
+      const opt = {
+        margin: 10,
+        filename: "document.pdf",
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm" as const, format: "a4" as const, orientation: "portrait" as const }
+      }
+
+      await html2pdf().set(opt).from(clone).save()
+      
+      document.body.removeChild(clone)
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
-      // Don't reset isExporting - we're navigating away
+      setIsExporting(false)
     }
   }, [])
 
