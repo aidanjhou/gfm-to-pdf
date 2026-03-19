@@ -7,37 +7,41 @@ import rehypeHighlight from "rehype-highlight"
 import rehypeRaw from "rehype-raw"
 import { FileDown } from "lucide-react"
 
-const DEFAULT_MD = `# Welcome to GFM to PDF
+const DEFAULT_MD = `# 欢迎使用 GFM 转 PDF
 
-## Features
+## 功能特点
 
-- **GitHub Flavored Markdown** support
-- Real-time preview
-- Export to PDF
+- **GitHub 风格 Markdown** 渲染
+- 实时预览
+- 导出 PDF
 
-### Code Example
+### 代码示例
 
 \`\`\`javascript
 function hello() {
-  console.log("Hello, World!");
+  console.log("你好，世界！");
 }
 \`\`\`
 
-### Table
+### 表格
 
-| Feature | Status |
-|---------|--------|
-| GFM | ✅ |
-| PDF Export | ✅ |
+| 功能 | 状态 |
+|------|------|
+| GFM 支持 | ✅ |
+| PDF 导出 | ✅ |
 | SSR | ✅ |
 
-### Task List
+### 任务列表
 
-- [x] Create project
-- [ ] Add PDF export
-- [ ] Deploy
+- [x] 创建项目
+- [ ] 添加更多功能
+- [ ] 部署上线
 
-> This is a blockquote
+> 这是一段引用文本
+
+测试中文标点：顿号、逗号、句号、分号、冒号、引号「」『』
+
+自动链接：https://example.com
 `
 
 export default function Home() {
@@ -50,18 +54,80 @@ export default function Home() {
       const container = document.getElementById("preview-container")
       if (!container) return
 
-      // Dynamic import to avoid SSR issues
-      const html2pdf = (await import("html2pdf.js")).default
+      // Clone the container to avoid modifying the original
+      const clone = container.cloneNode(true) as HTMLElement
+      clone.style.width = "210mm"
+      
+      // Remove scripts and styles that might cause issues
+      const scripts = clone.querySelectorAll('script, style')
+      scripts.forEach(el => el.remove())
 
-      const opt = {
-        margin: 10,
-        filename: "document.pdf",
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
+      // Add print-specific styles with Chinese font
+      clone.style.backgroundColor = "#ffffff"
+      clone.style.color = "#000000"
+      clone.style.padding = "20px"
+      clone.style.fontFamily = "'Noto Sans SC', sans-serif"
+      
+      // Apply font family to all text elements
+      const allElements = clone.querySelectorAll('*')
+      allElements.forEach((el) => {
+        const element = el as HTMLElement
+        if (element.style.fontFamily === '' || !element.style.fontFamily) {
+          element.style.fontFamily = "'Noto Sans SC', sans-serif"
+        }
+      })
+      
+      document.body.appendChild(clone)
+
+      // Dynamic import to avoid SSR issues
+      const html2canvas = (await import("html2canvas")).default
+      const { jsPDF } = await import("jspdf")
+      const fontkit = (await import("@pdf-lib/fontkit")).default
+      const pdf = new jsPDF("p", "mm", "a4") as any
+      pdf.registerFontkit(fontkit)
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: clone.scrollWidth
+      })
+
+      document.body.removeChild(clone)
+
+      // Load Chinese font from local file
+      const fontResponse = await fetch("/fonts/NotoSansSC-Regular.otf")
+      const fontBuffer = await fontResponse.arrayBuffer()
+
+      // Register and embed font using fontkit
+      pdf.registerFontkit(fontkit)
+      pdf.addFileToVFS("NotoSansSC-Regular.otf", fontBuffer)
+      pdf.addFont("NotoSansSC-Regular.otf", "NotoSansSC", "normal")
+      pdf.setFont("NotoSansSC")
+
+      const imgData = canvas.toDataURL("image/png")
+
+      const pageWidth = 210
+      const pageHeight = 297
+      const margin = 10
+      const contentWidth = pageWidth - margin * 2
+      const contentHeight = (canvas.height * contentWidth) / canvas.width
+      
+      let heightLeft = contentHeight
+      let position = margin
+
+      pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
+      heightLeft -= (pageHeight - margin)
+
+      while (heightLeft >= 0) {
+        position = heightLeft - contentHeight + margin
+        pdf.addPage()
+        pdf.addImage(imgData, "PNG", margin, position, contentWidth, contentHeight)
+        heightLeft -= (pageHeight - margin)
       }
 
-      await html2pdf().set(opt).from(container).save()
+      pdf.save("document.pdf")
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
