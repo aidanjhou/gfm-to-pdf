@@ -68,6 +68,12 @@ export default function Home() {
       clone.style.fontFamily = "'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif"
       
       // Add style to remove blockquote pseudo-elements (Tailwind adds quotes)
+      // Use link tag for fonts instead of @import (more reliable)
+      const fontLink = document.createElement("link")
+      fontLink.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap"
+      fontLink.rel = "stylesheet"
+      document.head.appendChild(fontLink)
+
       const style = document.createElement("style")
       style.textContent = `
         blockquote::before, blockquote::after { content: none !important; }
@@ -76,6 +82,9 @@ export default function Home() {
       clone.appendChild(style)
       
       document.body.appendChild(clone)
+
+      // Wait for font to load
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Import html2pdf.js
       const html2pdf = (await import("html2pdf.js")).default
