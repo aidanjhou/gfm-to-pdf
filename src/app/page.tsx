@@ -83,6 +83,8 @@ export default function Home() {
       const html2canvas = (await import("html2canvas")).default
       const { jsPDF } = await import("jspdf")
       const fontkit = (await import("@pdf-lib/fontkit")).default
+      const pdf = new jsPDF("p", "mm", "a4") as any
+      pdf.registerFontkit(fontkit)
 
       const canvas = await html2canvas(clone, {
         scale: 2,
@@ -94,19 +96,17 @@ export default function Home() {
 
       document.body.removeChild(clone)
 
-      // Load Chinese font from Google Fonts
-      const fontUrl = "https://fonts.gstatic.com/s/notosanssc/v36/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYwNbPzS5HE.119.woff2"
-      const fontResponse = await fetch(fontUrl)
+      // Load Chinese font from local file
+      const fontResponse = await fetch("/fonts/NotoSansSC-Regular.otf")
       const fontBuffer = await fontResponse.arrayBuffer()
 
-      const imgData = canvas.toDataURL("image/png")
-      const pdf = new jsPDF("p", "mm", "a4")
-      
       // Register and embed font using fontkit
-      ;(pdf as any).registerFontkit?.(fontkit)
-      ;(pdf as any).addFileToVFS("NotoSansSC-Regular.ttf", fontBuffer)
-      ;(pdf as any).addFont("NotoSansSC-Regular.ttf", "NotoSansSC", "normal")
-      ;(pdf as any).setFont("NotoSansSC")
+      pdf.registerFontkit(fontkit)
+      pdf.addFileToVFS("NotoSansSC-Regular.otf", fontBuffer)
+      pdf.addFont("NotoSansSC-Regular.otf", "NotoSansSC", "normal")
+      pdf.setFont("NotoSansSC")
+
+      const imgData = canvas.toDataURL("image/png")
 
       const pageWidth = 210
       const pageHeight = 297
