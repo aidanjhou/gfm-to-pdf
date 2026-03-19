@@ -50,65 +50,22 @@ export default function Home() {
 
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true)
-    console.log("Starting PDF export...")
     try {
       const container = document.getElementById("preview-container")
       if (!container) {
         console.error("Preview container not found")
         return
       }
-      console.log("Found container")
 
-      // Clone the container
-      const clone = container.cloneNode(true) as HTMLElement
-      clone.style.position = "absolute"
-      clone.style.left = "-9999px"
-      clone.style.width = "794px" // A4 width in pixels at 96dpi
-      clone.style.backgroundColor = "#ffffff"
-      clone.style.color = "#000000"
-      clone.style.padding = "20px"
-      clone.style.fontFamily = "'Noto Sans SC', sans-serif"
+      // Encode content for URL
+      const content = encodeURIComponent(container.innerHTML)
       
-      document.body.appendChild(clone)
-      console.log("Clone added to body")
-
-      // Dynamic import
-      const html2canvas = (await import("html2canvas")).default
-      console.log("html2canvas loaded")
-      
-      const { jsPDF } = await import("jspdf")
-      console.log("jspdf loaded")
-
-      const canvas = await html2canvas(clone, {
-        scale: 1,
-        useCORS: true,
-        backgroundColor: "#ffffff"
-      })
-      console.log("Canvas created:", canvas.width, "x", canvas.height)
-
-      document.body.removeChild(clone)
-      console.log("Clone removed")
-
-      // Simple PDF without font embedding first
-      const pdf = new jsPDF("p", "mm", "a4")
-      const imgData = canvas.toDataURL("image/png")
-
-      const pageWidth = 210
-      const pageHeight = 297
-      const margin = 10
-      const contentWidth = pageWidth - margin * 2
-      const contentHeight = (canvas.height * contentWidth) / canvas.width
-      
-      pdf.addImage(imgData, "PNG", margin, margin, contentWidth, contentHeight)
-      console.log("Image added to PDF")
-
-      // Use browser print dialog - more reliable
-      window.print()
-      console.log("Print dialog opened")
+      // Navigate to print page with content as query param
+      window.location.href = `/print?content=${content}`
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
-      setIsExporting(false)
+      // Don't reset isExporting - we're navigating away
     }
   }, [])
 
