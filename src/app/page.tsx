@@ -51,35 +51,17 @@ export default function Home() {
       if (!container) return
 
       // Dynamic import to avoid SSR issues
-      const html2canvas = (await import("html2canvas")).default
-      const { jsPDF } = await import("jspdf")
+      const html2pdf = (await import("html2pdf.js")).default
 
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff"
-      })
-
-      const imgData = canvas.toDataURL("image/png")
-      const pdf = new jsPDF("p", "mm", "a4")
-      const imgWidth = 210
-      const pageHeight = 297
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      let heightLeft = imgHeight
-      let position = 0
-
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      const opt = {
+        margin: 10,
+        filename: "document.pdf",
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
       }
 
-      pdf.save("document.pdf")
+      await html2pdf().set(opt).from(container).save()
     } catch (error) {
       console.error("Export failed:", error)
     } finally {
