@@ -59,9 +59,11 @@ export default function Home() {
 
       // Clone and prepare content for PDF
       const clone = container.cloneNode(true) as HTMLElement
-      clone.style.position = "absolute"
-      clone.style.left = "-9999px"
+      clone.style.position = "fixed"
+      clone.style.left = "0"
+      clone.style.top = "0"
       clone.style.width = "210mm"
+      clone.style.zIndex = "-1"
       clone.style.backgroundColor = "#ffffff"
       clone.style.color = "#000000"
       clone.style.padding = "20mm"
@@ -76,6 +78,9 @@ export default function Home() {
       clone.appendChild(style)
       
       document.body.appendChild(clone)
+
+      // Wait for rendering
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Import html2pdf.js
       const html2pdf = (await import("html2pdf.js")).default
